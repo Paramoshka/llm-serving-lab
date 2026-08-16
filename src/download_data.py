@@ -29,11 +29,11 @@ def write_dialogues(rows: Iterable[Mapping[str, object]], output: Path) -> int:
     try:
         with temporary_output.open("w", encoding="utf-8") as file:
             for row in rows:
-                dialogue = row.get("dialog")
+                dialogue = row.get("utterances")
                 if not isinstance(dialogue, list) or not all(
                     isinstance(utterance, str) for utterance in dialogue
                 ):
-                    raise ValueError("Dataset rows must contain a 'dialog' list of strings")
+                    raise ValueError("Dataset rows must contain an 'utterances' list of strings")
                 file.write(format_dialogue(dialogue))
                 file.write("\n\n")
                 count += 1

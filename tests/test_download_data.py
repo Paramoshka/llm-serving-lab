@@ -15,6 +15,6 @@ def test_write_dialogues_rejects_invalid_rows_without_creating_output(tmp_path: 
     output = tmp_path / "dialogues.txt"
 
     with pytest.raises(ValueError, match="dialog"):
-        write_dialogues([{"dialog": "not a list"}], output)
+        write_dialogues([{"utterances": "not a list"}], output)
 
     assert not output.exists()

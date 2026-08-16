@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mini-llm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mini-llm
+  template:
+    metadata:
+      labels:
+        app: mini-llm
+    spec:
+      containers:
+        - name: api
+          image: mini-llm:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mini-llm
+spec:
+  selector:
+    app: mini-llm
+  ports:
+    - port: 80
+      targetPort: 8000

@@ -17,15 +17,36 @@ This lab will evolve from the CPU baseline into a production-style LLM serving e
 - Recover from a Pod failure and update the model.
 - Estimate request costs.
 
-## Quick start
+## GPU training
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
-printf 'a tiny model learns to continue text.\n' > data/input.txt
-python -m src.train --data data/input.txt --epochs 20
-uvicorn src.serve:app --host 0.0.0.0 --port 8000
+# Install a CUDA-enabled PyTorch wheel for your NVIDIA driver from pytorch.org.
+python -m pip install -r requirements.txt -r requirements-train.txt
+make data
+make learn
+```
+
+`make learn` uses CUDA by default. For an explicit CPU fallback, run `make learn DEVICE=cpu`.
+The default profile uses the first 200,000 characters, batch size 128, and 10 epochs. Override it as needed, for example: `make learn EPOCHS=20 MAX_CHARS=1000000`.
+
+DailyDialog is downloaded only to `data/dailydialog.txt`, which is ignored by Git. It is licensed under [CC BY-NC-SA 4.0](https://huggingface.co/datasets/roskoN/dailydialog), so use it only for this non-commercial lab and retain attribution when sharing derivatives.
+
+## Tests
+
+```bash
+python -m pip install -r requirements-dev.txt
+make test
+```
+
+## Build and run
+
+`make build` runs training first and then builds a CPU-only image that includes `artifacts/model.pt`:
+
+```bash
+make build
+docker run --rm -p 8000:8000 mini-llm:local
 ```
 
 Check the service:
@@ -34,19 +55,10 @@ Check the service:
 curl http://localhost:8000/health
 curl -X POST http://localhost:8000/generate \
   -H 'content-type: application/json' \
-  -d '{"prompt":"tiny", "max_new_tokens":30}'
+  -d '{"prompt":"User: hello\nAssistant:", "max_new_tokens":30}'
 ```
 
-## Docker
-
-Train the model first so that `artifacts/model.pt` is included in the image. The image can also be built before training, but then `/health` returns `model_not_loaded` and `/generate` returns `503`. Build and run the service:
-
-```bash
-docker build -t mini-llm:local .
-docker run --rm -p 8000:8000 mini-llm:local
-```
-
-For Kubernetes, push the image to a registry available to the cluster and replace `image` in `kubernetes/model/deployment.yaml`.
+For Kubernetes, push `mini-llm:local` to a registry available to the cluster and replace `image` in `kubernetes/model/deployment.yaml`.
 
 ## Project layout
 
@@ -57,6 +69,6 @@ docs/             experiment notes
 kubernetes/model/ CPU service deployment
 load-generator/   future load generator
 src/              model, training, and HTTP API
-data/             local training texts
+data/             locally downloaded training data
 artifacts/        local checkpoints (not committed)
 ```
